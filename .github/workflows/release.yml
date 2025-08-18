@@ -33,12 +33,13 @@ jobs:
       - name: Extract version
         id: vars
         run: |
-          echo "APP_VER=${env:GITHUB_REF.Replace('refs/tags/v','')}" >> $env:GITHUB_ENV
+          $ver = $env:GITHUB_REF -replace 'refs/tags/v',''
+          echo "ver=$ver" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
       # Build Windows installer via Inno Setup
       - name: Compile installer
-        run: iscc /DMyAppVersion=$env:APP_VER installer.iss
+        run: iscc /DMyAppVersion=${{ steps.vars.outputs.ver }} installer.iss
         shell: pwsh
 
       # Upload artefacts to the GitHub Release that triggered this workflow
