@@ -30,8 +30,15 @@ jobs:
         shell: pwsh
 
       # Build Windows installer via Inno Setup
+      - name: Extract version
+        id: vars
+        run: |
+          echo "APP_VER=${env:GITHUB_REF.Replace('refs/tags/v','')}" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      # Build Windows installer via Inno Setup
       - name: Compile installer
-        run: iscc installer.iss
+        run: iscc /DMyVer=%APP_VER% installer.iss
         shell: pwsh
 
       # Upload artefacts to the GitHub Release that triggered this workflow
