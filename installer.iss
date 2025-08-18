@@ -1,6 +1,6 @@
 ; Chem Results GUI – Inno Setup 6 script
 #define MyAppName        "Chem Results GUI"
-#define MyAppExeName     "ChemResultsGUI.exe"
+#define MyAppExeName     "ChemResultsGUI_portable.exe"
 #ifndef MyAppVersion
 #define MyAppVersion "0.0.0"
 #endif

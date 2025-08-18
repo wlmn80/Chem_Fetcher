@@ -38,7 +38,7 @@ jobs:
 
       # Build Windows installer via Inno Setup
       - name: Compile installer
-        run: iscc /DMyAppVersion=%APP_VER% installer.iss
+        run: iscc /DMyAppVersion=$env:APP_VER installer.iss
         shell: pwsh
 
       # Upload artefacts to the GitHub Release that triggered this workflow
@@ -47,5 +47,5 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           files: |
-            dist/ChemResultsGUI.exe
+            dist/ChemResultsGUI_portable.exe
             Output/ChemResultsGUISetup_*.exe
