@@ -1,7 +1,9 @@
 ; Chem Results GUI – Inno Setup 6 script
 #define MyAppName        "Chem Results GUI"
 #define MyAppExeName     "ChemResultsGUI.exe"
-#define MyAppVersion     GetStringParam("MyVer", "0.0.0")
+#ifndef MyAppVersion
+#define MyAppVersion "0.0.0"
+#endif
 #define MyPublisher      "WL"
 
 [Setup]

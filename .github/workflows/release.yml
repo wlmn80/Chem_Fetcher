@@ -38,7 +38,7 @@ jobs:
 
       # Build Windows installer via Inno Setup
       - name: Compile installer
-        run: iscc /DMyVer=%APP_VER% installer.iss
+        run: iscc /DMyAppVersion=%APP_VER% installer.iss
         shell: pwsh
 
       # Upload artefacts to the GitHub Release that triggered this workflow
