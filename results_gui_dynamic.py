@@ -8,6 +8,12 @@ import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
+try:
+    import requests  # type: ignore
+except ImportError:  # pragma: no cover
+    requests = None  # fallback if not installed
+import webbrowser
+from distutils.version import LooseVersion
 import functools
 import subprocess
 import csv
@@ -15,6 +21,8 @@ import csv
 # Prevent creation of __pycache__ directories
 import sys as _sys
 _sys.dont_write_bytecode = True
+
+__version__ = "0.1.0"
 
 import fetch_results_dynamic as dyn  # reuse backend functions
 
@@ -125,6 +133,8 @@ class ResultsGUI(tk.Tk):
 
         # Load years in background
         threading.Thread(target=self._load_years, daemon=True).start()
+        # Background check for updates
+        threading.Thread(target=self._check_for_updates, daemon=True).start()
 
     # -----------------------------------------------------------------
     def _build_widgets(self) -> None:
@@ -141,7 +151,8 @@ class ResultsGUI(tk.Tk):
         menubar.add_cascade(label="File", menu=file_menu)
 
         help_menu = tk.Menu(menubar, tearoff=False)
-        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", "Student Results Fetcher\nDeveloped by WL"))
+        help_menu.add_command(label="Check for Updates", command=self._manual_check_updates)
+        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", f"Chem Results GUI\nVersion {__version__}\nDeveloped by WLMN"))
         menubar.add_cascade(label="Help", menu=help_menu)
         self.config(menu=menubar)
 
@@ -600,6 +611,35 @@ class ResultsGUI(tk.Tk):
         self.after(0, lambda: self._set_controls_state("!disabled"))
         self.after(0, lambda: (self.status_var.set("Ready"), self.progress_bar.config(value=0)))
 
+
+    # -------------------- Update checking --------------------
+    _UPDATE_URL = "https://api.github.com/repos/wlmn80/Chem_Fetcher/releases/latest"
+
+    def _manual_check_updates(self):
+        # Trigger user-requested update check in a background thread
+        threading.Thread(target=self._check_for_updates, args=(True,), daemon=True).start()
+
+    def _check_for_updates(self, manual: bool = False):
+        if requests is None:
+            if manual:
+                messagebox.showwarning("Update check unavailable", "The 'requests' package is not installed. Update checking is disabled.")
+            return
+        try:
+            resp = requests.get(self._UPDATE_URL, timeout=5, headers={"User-Agent": "ChemResultsGUI"})
+            resp.raise_for_status()
+            data = resp.json()
+            latest_tag = data.get("tag_name", "")
+            if latest_tag.startswith("v"):
+                latest_tag = latest_tag[1:]
+            if latest_tag and LooseVersion(latest_tag) > LooseVersion(__version__):
+                if messagebox.askyesno("Update available", f"Version {latest_tag} is available.\nOpen downloads page?"):
+                    webbrowser.open(data.get("html_url", "https://github.com/mnswl/Chem_Fetcher/releases/latest"))
+            else:
+                if manual:
+                    messagebox.showinfo("Up to date", f"You are running the latest version ({__version__}).")
+        except Exception as exc:
+            if manual:
+                messagebox.showerror("Update check failed", f"Could not check for updates:\n{exc}")
 
 if __name__ == "__main__":
     ResultsGUI().mainloop()

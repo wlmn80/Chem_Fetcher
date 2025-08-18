@@ -32,6 +32,8 @@ htmlcov/
 
 # Local development / testing files
 # Ignore any files in a tests folder or ending with _test.py / test_.py
+Test
+Test/
 /tests/
 **/*_test.py
 **/test_*.py

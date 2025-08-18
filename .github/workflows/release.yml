@@ -1,0 +1,43 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Set up Python for PyInstaller
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: choco install -y innosetup
+        shell: pwsh
+
+      # Build standalone GUI exe (no console)
+      - name: PyInstaller build
+        run: pyinstaller -F -w -n ChemResultsGUI results_gui_dynamic.py
+        shell: pwsh
+
+      # Build Windows installer via Inno Setup
+      - name: Compile installer
+        run: iscc installer.iss
+        shell: pwsh
+
+      # Upload artefacts to the GitHub Release that triggered this workflow
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/ChemResultsGUI.exe
+            Output/ChemResultsGUISetup_*.exe

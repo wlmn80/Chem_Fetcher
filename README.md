@@ -1,6 +1,6 @@
 # Student Results Fetcher
 
-A Tkinter GUI tool for automatically retrieving student result data from a Firebase Realtime Database and exporting it to CSV.
+A Tkinter GUI tool for automatically retrieving student result data and exporting it to CSV.
 
 ## Features
 
@@ -28,6 +28,10 @@ python results_gui_dynamic.py
 pip install pyinstaller
 pyinstaller -F -n StudentResultsFetcher results_gui_dynamic.py
 ```
+
+## Disclaimer
+
+> **Educational Use Only** – This project is intended solely for learning and demonstration purposes. Use it responsibly and respect all applicable data-privacy regulations.
 
 ## License
 
