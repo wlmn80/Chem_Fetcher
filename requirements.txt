@@ -1,0 +1,2 @@
+requests>=2.31.0
+pandas>=2.0.0 # optional but used for CSV append if installed
