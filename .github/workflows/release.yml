@@ -26,7 +26,7 @@ jobs:
 
       # Build standalone GUI exe (no console)
       - name: PyInstaller build
-        run: pyinstaller -F -w -n ChemResultsGUI results_gui_dynamic.py
+        run: pyinstaller ChemResultsGUI.spec
         shell: pwsh
 
       # Build Windows installer via Inno Setup
