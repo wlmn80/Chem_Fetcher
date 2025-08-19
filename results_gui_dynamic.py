@@ -171,7 +171,7 @@ class ResultsGUI(tk.Tk):
         file_menu.add_command(label="Switch to Single Index Mode", command=self._switch_to_single)
         self._mode_menu_index = file_menu.index("end")
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.destroy)
+        file_menu.add_command(label="Exit", command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
 
         help_menu = tk.Menu(menubar, tearoff=False)
