@@ -42,9 +42,10 @@ def _detect_git_tag_version() -> str | None:  # Python 3.11+
     except Exception:
         return None
 
-_git_ver = _detect_git_tag_version()
-if _git_ver:
-    __version__ = _git_ver
+if not getattr(sys, 'frozen', False):
+    _git_ver = _detect_git_tag_version()
+    if _git_ver:
+        __version__ = _git_ver
 
 import fetch_results_dynamic as dyn  # reuse backend functions
 
