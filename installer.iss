@@ -18,6 +18,9 @@ OutputDir=Output
 OutputBaseFilename=ChemResultsGUISetup_{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
+CloseApplications=yes
+CloseApplicationsFilter={#MyAppExeName}
+RestartApplications=yes
 
 [Files]
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
