@@ -97,6 +97,7 @@ USER_AGENT_NOTE = f"Default save folder: {DEFAULT_DIR}"
 
 # --------------------------- GUI LOGIC ----------------------------
 class ResultsGUI(tk.Tk):
+    _closing = False
     # --------------------- status bar spinner helpers --------------------
     def _start_status_spinner(self, base: str):
         self._spinner_base = base
@@ -181,6 +182,8 @@ class ResultsGUI(tk.Tk):
             ))
         menubar.add_cascade(label="Help", menu=help_menu)
         self.config(menu=menubar)
+        # Ensure full termination on close
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # Main frame
         main = ttk.Frame(self, padding=10)
@@ -640,6 +643,15 @@ class ResultsGUI(tk.Tk):
 
     # -------------------- Update checking --------------------
     _UPDATE_URL = "https://api.github.com/repos/wlmn80/Chem_Fetcher/releases/latest"
+
+    def _on_close(self):
+        """Handle window close to ensure background threads don't keep the process alive."""
+        if self._closing:
+            return
+        self._closing = True
+        self.destroy()
+        # Hard exit to kill any lingering threads or requests
+        os._exit(0)
 
     def _manual_check_updates(self):
         # Trigger user-requested update check in a background thread
