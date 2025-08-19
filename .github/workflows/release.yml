@@ -36,7 +36,7 @@ jobs:
       - name: Patch version in code
         run: |
           $ver = '${{ steps.vars.outputs.ver }}'
-          (Get-Content results_gui_dynamic.py) -replace '__version__ = ".+"', "__version__ = \"$ver\"" | Set-Content results_gui_dynamic.py
+          (Get-Content results_gui_dynamic.py) -replace '__version__ = ".+"', "__version__ = `"$ver`"" | Set-Content results_gui_dynamic.py
         shell: pwsh
 
       # Build portable EXE (no console)
