@@ -175,7 +175,10 @@ class ResultsGUI(tk.Tk):
 
         help_menu = tk.Menu(menubar, tearoff=False)
         help_menu.add_command(label="Check for Updates", command=self._manual_check_updates)
-        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", f"Chem Results GUI\nVersion {__version__}\nDeveloped by WLMN"))
+        help_menu.add_command(label="About", command=lambda: messagebox.showinfo(
+                "About",
+                f"Chem Results GUI\nVersion {__version__}\nDeveloped by WL\nData fetched from results-app-5e81d.web.app (courtesy of Mrs. Samanmalee)"
+            ))
         menubar.add_cascade(label="Help", menu=help_menu)
         self.config(menu=menubar)
 

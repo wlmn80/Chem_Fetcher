@@ -29,6 +29,10 @@ pip install pyinstaller
 pyinstaller -F -n StudentResultsFetcher results_gui_dynamic.py
 ```
 
+## Data Source
+
+The marks are retrieved from the public web portal at [results-app-5e81d.web.app](https://results-app-5e81d.web.app) which is maintained by **Mrs. Samanmalee** for her students. This project simply automates downloading that publicly available information; it has no affiliation with the portal’s maintainer.
+
 ## Disclaimer
 
 > **Educational Use Only** – This project is intended solely for learning and demonstration purposes. Use it responsibly and respect all applicable data-privacy regulations.
