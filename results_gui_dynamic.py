@@ -22,7 +22,29 @@ import csv
 import sys as _sys
 _sys.dont_write_bytecode = True
 
+# Default version, will be overridden if git tag available or patched by CI
 __version__ = "0.1.0"
+
+# --- Dynamically detect version from git when running from source ---
+import subprocess
+
+def _detect_git_tag_version() -> str | None:  # Python 3.11+
+    """Return the most recent git tag (without leading 'v') if available."""
+    try:
+        tag = subprocess.check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if tag.startswith("v"):
+            tag = tag[1:]
+        return tag
+    except Exception:
+        return None
+
+_git_ver = _detect_git_tag_version()
+if _git_ver:
+    __version__ = _git_ver
 
 import fetch_results_dynamic as dyn  # reuse backend functions
 

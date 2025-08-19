@@ -24,18 +24,27 @@ jobs:
         run: choco install -y innosetup
         shell: pwsh
 
-      # Build standalone GUI exe (no console)
-      - name: PyInstaller build
-        run: pyinstaller ChemResultsGUI.spec
-        shell: pwsh
-
-      # Build Windows installer via Inno Setup
+      # Extract version from tag
       - name: Extract version
         id: vars
         run: |
           $ver = $env:GITHUB_REF -replace 'refs/tags/v',''
           echo "ver=$ver" >> $env:GITHUB_OUTPUT
         shell: pwsh
+
+      # Patch __version__ constant inside the source
+      - name: Patch version in code
+        run: |
+          $ver = '${{ steps.vars.outputs.ver }}'
+          (Get-Content results_gui_dynamic.py) -replace '__version__ = ".+"', "__version__ = \"$ver\"" | Set-Content results_gui_dynamic.py
+        shell: pwsh
+
+      # Build portable EXE (no console)
+      - name: PyInstaller build
+        run: pyinstaller ChemResultsGUI.spec
+        shell: pwsh
+
+
 
       # Build Windows installer via Inno Setup
       - name: Compile installer
