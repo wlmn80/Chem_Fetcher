@@ -16,8 +16,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install build dependencies
+        run: |
+          pip install pyinstaller requests
         shell: pwsh
 
       - name: Install Inno Setup
