@@ -16,6 +16,7 @@ import webbrowser
 import socket
 from distutils.version import LooseVersion
 import functools
+EMERGENCY_FLAG_URL = "https://raw.githubusercontent.com/wlmn80/Chem_Fetcher/main/emergency_flag.txt"
 import subprocess
 import csv
 
@@ -152,6 +153,7 @@ class ResultsGUI(tk.Tk):
         self.progress_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready")
         self.net_status_var = tk.StringVar(value="Offline")
+        self._forced_offline = False  # emergency shutdown flag
         self._last_online = self._is_online()  # initial connectivity state
         self._back_timer = None
 
@@ -180,6 +182,11 @@ class ResultsGUI(tk.Tk):
         self._mode_menu_index = file_menu.index("end")
         file_menu.add_command(label="Refresh", command=self._refresh_years)
         file_menu.add_separator()
+        if os.getenv("RF_ADMIN") == "1":
+            file_menu.add_separator()
+            file_menu.add_command(label="Emergency Shutdown (Offline)", command=self._toggle_emergency)
+            # secret shortcut Ctrl+Shift+E
+            self.bind_all('<Control-Shift-E>', lambda e: self._toggle_emergency())
         file_menu.add_command(label="Exit", command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
 
@@ -684,7 +691,38 @@ class ResultsGUI(tk.Tk):
         # Hard exit to kill any lingering threads or requests
         os._exit(0)
 
+    def _toggle_emergency(self):
+        """Toggle forced offline/online state."""
+        self._forced_offline = not getattr(self, "_forced_offline", False)
+        if self._forced_offline:
+            self.status_var.set("Emergency offline mode active")
+            self._last_online = False
+        else:
+            self.status_var.set("Ready")
+            # reset online state
+            self._last_online = self._is_online()
+        # update UI
+        self._update_fetch_btn()
+        self.net_status_var.set("Offline" if self._forced_offline else ("Online" if self._is_online() else "Offline"))
+        self.net_lbl.config(foreground=("red" if self.net_status_var.get()=="Offline" else "green"))
+
+    def _global_shutdown_active(self) -> bool:
+        """Check remote emergency flag; returns True if global shutdown on."""
+        if getattr(self, "_cached_shutdown", None) is True:
+            return True
+        try:
+            resp = requests.get(EMERGENCY_FLAG_URL, timeout=3, headers={'Cache-Control': 'no-cache'})
+            active = resp.text.strip().lower().startswith("on")
+            self._cached_shutdown = active
+            return active
+        except Exception:
+            return False
+
     def _is_online(self) -> bool:
+        if getattr(self, "_forced_offline", False):
+            return False
+        if self._global_shutdown_active():
+            return False
         try:
             socket.create_connection(("1.1.1.1", 80), 2)
             return True
