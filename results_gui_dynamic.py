@@ -13,6 +13,7 @@ try:
 except ImportError:  # pragma: no cover
     requests = None  # fallback if not installed
 import webbrowser
+import socket
 from distutils.version import LooseVersion
 import functools
 import subprocess
@@ -144,9 +145,15 @@ class ResultsGUI(tk.Tk):
         self.path_var = tk.StringVar(value=last_dir)
         self.range_var = tk.StringVar(value="Index range: –")
         self.single_index_var = tk.StringVar()
+        # watch changes to re-validate
+        for var in (self.year_var, self.paper_var, self.filename_var, self.single_index_var):
+            var.trace_add("write", lambda *args: self._update_fetch_btn())
         # no longer used for numeric display
         self.progress_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready")
+        self.net_status_var = tk.StringVar(value="Offline")
+        self._last_online = self._is_online()  # initial connectivity state
+        self._back_timer = None
 
 
         # Build UI
@@ -158,6 +165,7 @@ class ResultsGUI(tk.Tk):
         # Load years in background
         threading.Thread(target=self._load_years, daemon=True).start()
         # Background check for updates
+        self._poll_network()
         threading.Thread(target=self._check_for_updates, daemon=True).start()
 
     # -----------------------------------------------------------------
@@ -170,6 +178,7 @@ class ResultsGUI(tk.Tk):
         self._mode_menu = file_menu
         file_menu.add_command(label="Switch to Single Index Mode", command=self._switch_to_single)
         self._mode_menu_index = file_menu.index("end")
+        file_menu.add_command(label="Refresh", command=self._refresh_years)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -265,11 +274,19 @@ class ResultsGUI(tk.Tk):
 
         # Status bar
         status_bar = ttk.Label(self, textvariable=self.status_var, relief="sunken", anchor="center", padding=(4,2))
+        # Network status label on right
+        self.net_lbl = ttk.Label(self, textvariable=self.net_status_var, relief="sunken", padding=(4,2), width=10, anchor="center")
+        status_bar.grid(row=1, column=0, sticky="we", padx=(8,0), pady=(0,8))
+        self.net_lbl.grid(row=1, column=1, sticky="e", padx=(0,8), pady=(0,8))
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=0)
+        add_tooltip(self.net_lbl, "Current internet connectivity status")
         status_bar.grid(row=1, column=0, sticky="we", padx=8, pady=(0,8))
         self.columnconfigure(0, weight=1)
 
         # Fetch button
         self.fetch_btn = ttk.Button(main, text="Fetch Results", command=self._start_fetch)
+        self._update_fetch_btn()
         self.fetch_btn.grid(row=7, column=0, columnspan=2, pady=8)
         add_tooltip(self.fetch_btn, "Start fetching results")
 
@@ -323,12 +340,26 @@ class ResultsGUI(tk.Tk):
             years = sorted({int(k.split("_", 1)[0]) for k in keys if k[:4].isdigit()})
             self.after(0, lambda: self._populate_years(years))
         except Exception as exc:
-            self.after(0, lambda: messagebox.showerror("Error", f"Could not load years: {exc}"))
+            self.after(0, lambda: messagebox.showerror("Offline", "Could not load years. Please connect to the internet and try again."))
+            # likely offline; keep controls disabled
+            self.status_var.set("Offline: connect to internet")
+
+    def _refresh_years(self):
+        """Manually reload years list if connection restored."""
+        if not self._is_online():
+            messagebox.showwarning("Offline", "Connect to the internet to refresh year list.")
+            return
+        # disable controls while loading
+        self._set_controls_state("disabled")
+        self.status_var.set("Loading years…")
+        threading.Thread(target=self._load_years, daemon=True).start()
 
     def _populate_years(self, years):
         self.year_cmb["values"] = years
         self.year_cmb.set("")
         self.progress_var.set("")
+        self.status_var.set("Ready")
+        self._update_fetch_btn()
         self._set_controls_state("!disabled")
 
 
@@ -652,6 +683,55 @@ class ResultsGUI(tk.Tk):
         self.destroy()
         # Hard exit to kill any lingering threads or requests
         os._exit(0)
+
+    def _is_online(self) -> bool:
+        try:
+            socket.create_connection(("1.1.1.1", 80), 2)
+            return True
+        except OSError:
+            return False
+
+    def _update_fetch_btn(self):
+        """Enable Fetch when online and mandatory fields not empty."""
+        if getattr(self, "_current_mode", "batch") == "batch":
+            required_filled = bool(self.year_var.get() and self.paper_var.get())
+        else:
+            required_filled = bool(self.year_var.get() and self.single_index_var.get())
+        online = self._last_online if self._last_online is not None else self._is_online()
+        enable = required_filled and online
+        self.fetch_btn.state(["!disabled"] if enable else ["disabled"])
+
+    def _poll_network(self):
+        online = self._is_online()
+        # update label
+        self.net_status_var.set("Online" if online else "Offline")
+        self.net_lbl.config(foreground=("green" if online else "red"))
+        # update fetch button based on new connectivity + field state
+        if online and self._last_online is False:
+            # if years not populated, auto refresh
+            if not self.year_cmb["values"]:
+                threading.Thread(target=self._load_years, daemon=True).start()
+
+            self.status_var.set("Back online")
+            # reset to Ready after 3 seconds
+            if self._back_timer:
+                self.after_cancel(self._back_timer)
+            self._back_timer = self.after(3000, lambda: self.status_var.set("Ready"))
+        elif not online and (self._last_online is True or self._last_online is None):
+            self.status_var.set("Offline: connect to internet")
+            if self._back_timer:
+                self.after_cancel(self._back_timer)
+                self._back_timer = None
+
+        # update member before button validation
+        self._last_online = online
+        self._update_fetch_btn()
+        self._last_online = online
+        # schedule next check in 10 s
+        self.after(10000, self._poll_network)
+        self.net_status_var.set("Online" if self._is_online() else "Offline")
+        # schedule next check in 10 seconds
+        self.after(10000, self._poll_network)
 
     def _manual_check_updates(self):
         # Trigger user-requested update check in a background thread
