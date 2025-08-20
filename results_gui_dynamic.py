@@ -708,13 +708,25 @@ class ResultsGUI(tk.Tk):
 
     def _global_shutdown_active(self) -> bool:
         """Check remote emergency flag; returns True if global shutdown on."""
-        if getattr(self, "_cached_shutdown", None) is True:
-            return True
+        import time
+        now = time.time()
+        last = getattr(self, "_shutdown_last_check", 0)
+        if now - last < 60:  # use cached value for 60s
+            return getattr(self, "_cached_shutdown", False)
+
+        if requests is None:
+            return getattr(self, "_cached_shutdown", False)
+
         try:
             resp = requests.get(EMERGENCY_FLAG_URL, timeout=3, headers={'Cache-Control': 'no-cache'})
             active = resp.text.strip().lower().startswith("on")
             self._cached_shutdown = active
+            self._shutdown_last_check = now
             return active
+        except Exception:
+            # On error, keep previous state
+            self._shutdown_last_check = now
+            return getattr(self, "_cached_shutdown", False)
         except Exception:
             return False
 
@@ -723,11 +735,19 @@ class ResultsGUI(tk.Tk):
             return False
         if self._global_shutdown_active():
             return False
+        import time
+        now = time.time()
+        last_net = getattr(self, "_network_last_check", 0)
+        if now - last_net < 10:
+            return getattr(self, "_cached_online", False)
         try:
             socket.create_connection(("1.1.1.1", 80), 2)
-            return True
+            online = True
         except OSError:
-            return False
+            online = False
+        self._cached_online = online
+        self._network_last_check = now
+        return online
 
     def _update_fetch_btn(self):
         """Enable Fetch when online and mandatory fields not empty."""
